@@ -15,13 +15,28 @@ client.on(
 
 app.get(
     "/jobs", async (req, res) => {
-        const searchTerm = req.query.search;
+        const searchTerm = "Govini";
+        // const searchTerm = req.query.search;
         console.log('hu',searchTerm);
         try{
-            const jobs = await axios.get(`https://jobs.github.com/positions.json?search=${searchTerm}`);
-            res.status(200).send({
-                jobs: jobs.data
-            });
+            client.get(searchTerm, async (err, jobs) => {
+                if(err) throw err;
+
+                if(jobs){
+                    res.status(200).send({
+                        jobs: JSON.parse(jobs),
+                        message: "data retrieved from the cache"
+                    });
+                }
+                else{
+                    const jobs = await axios.get(`https://jobs.github.com/positions.json?search=${searchTerm}`);
+                    client.setex(searchTerm, 600, JSON.stringify(jobs.data));
+                    res.status(200).send({
+                        jobs: jobs.data,
+                        message: "cache miss"
+                    });
+                }
+            })
         }
         catch(err){
             res.status(500).send({
